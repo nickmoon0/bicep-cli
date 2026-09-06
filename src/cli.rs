@@ -31,6 +31,7 @@ Examples:
   bcp avm --filter 'key vault'           find Azure Verified Modules
   bcp best-practices                     Bicep authoring rules (markdown)
   bcp tools --markdown                   describe every server tool
+  bcp skill install --global             teach GitHub Copilot to use bcp (personal skills dir)
 
 Environment: BICEP_MCP_COMMAND, BCP_TRANSPORT, BCP_STATE_DIR";
 
@@ -148,6 +149,9 @@ pub enum Command {
 
     /// Inspect or stop the daemon
     Daemon(DaemonArgs),
+
+    /// Print or install the GitHub Copilot skill that teaches agents to use bcp
+    Skill(SkillArgs),
 
     /// Check the toolchain, daemon and server, and report timings
     Doctor,
@@ -390,6 +394,35 @@ pub enum DaemonAction {
 }
 
 #[derive(Args, Debug)]
+pub struct SkillArgs {
+    #[command(subcommand)]
+    pub action: SkillAction,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum SkillAction {
+    /// Print SKILL.md (or one of its reference files) to stdout
+    Print {
+        /// File inside the skill folder, e.g. reference/commands.md [default: SKILL.md]
+        file: Option<String>,
+    },
+    /// Write the skill folder to a repository (.github/skills) or your personal skills directory
+    Install {
+        /// Install to ~/.copilot/skills (picked up by Copilot in every repository)
+        #[arg(long, conflicts_with = "dir")]
+        global: bool,
+        /// Install under this skills directory instead of ./.github/skills
+        #[arg(long, value_name = "DIR")]
+        dir: Option<PathBuf>,
+        /// Overwrite files that differ from the embedded skill
+        #[arg(long)]
+        force: bool,
+    },
+    /// Show where Copilot discovers skills on this machine and whether bcp's is installed
+    Paths,
+}
+
+#[derive(Args, Debug)]
 pub struct VersionArgs {
     /// Also start/contact the server and report its version
     #[arg(long)]
@@ -408,6 +441,11 @@ mod tests {
 
     #[test]
     fn parses_typical_invocations() {
+        let cli = Cli::try_parse_from(["bcp", "skill", "install", "--global", "--force"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Skill(ref a) if matches!(a.action, SkillAction::Install { global: true, force: true, .. })
+        ));
         let cli = Cli::try_parse_from(["bcp", "build", "main.bicep", "--template-only"]).unwrap();
         assert!(matches!(cli.command, Command::Build(ref a) if a.template_only));
         let cli = Cli::try_parse_from(["bcp", "--text", "types", "Microsoft.Storage", "--latest"])
