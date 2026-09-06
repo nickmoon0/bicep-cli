@@ -8,6 +8,7 @@ mod decompile;
 mod doctor;
 mod format;
 mod meta;
+mod skill;
 
 use crate::cli::Command;
 use crate::error::CliError;
@@ -35,6 +36,7 @@ pub async fn dispatch(ctx: &Ctx, command: Command) -> Result<Outcome, CliError> 
         Command::Batch => meta::batch(ctx).await,
         Command::Serve(args) => daemon_cmd::serve(ctx, args).await,
         Command::Daemon(args) => daemon_cmd::daemon(ctx, args).await,
+        Command::Skill(args) => skill::run(ctx, args.action),
         Command::Doctor => doctor::doctor(ctx).await,
         Command::Version(args) => doctor::version(ctx, args).await,
     }

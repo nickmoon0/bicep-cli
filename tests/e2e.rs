@@ -526,3 +526,48 @@ fn daemon_lifecycle() {
         "stale state file removed"
     );
 }
+
+#[test]
+fn skill_tools_reference_is_current() {
+    require_e2e!();
+    let out = bcp(&["tools", "--markdown"]);
+    assert_eq!(code(&out), 0);
+    let expected = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join(".github/skills/bicep/reference/tools.md"),
+    )
+    .unwrap();
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout).replace("\r\n", "\n"),
+        expected.replace("\r\n", "\n"),
+        "regenerate with: bcp tools --markdown > .github/skills/bicep/reference/tools.md"
+    );
+}
+
+#[test]
+fn skill_install_matches_source() {
+    require_e2e!();
+    let dir = state_dir().join("skills");
+    let out = bcp(&["skill", "install", "--dir", &dir.to_string_lossy()]);
+    assert_eq!(code(&out), 0, "{}", String::from_utf8_lossy(&out.stderr));
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join(".github/skills/bicep");
+    for rel in [
+        "SKILL.md",
+        "reference/commands.md",
+        "reference/tools.md",
+        "reference/examples.md",
+    ] {
+        let a = std::fs::read_to_string(source.join(rel)).unwrap();
+        let b = std::fs::read_to_string(dir.join("bicep").join(rel)).unwrap();
+        assert_eq!(
+            a.replace("\r\n", "\n"),
+            b.replace("\r\n", "\n"),
+            "{rel} differs"
+        );
+    }
+    let out = bcp(&["skill", "print"]);
+    assert_eq!(code(&out), 0);
+    assert!(String::from_utf8_lossy(&out.stdout).starts_with("---\nname: bicep"));
+    let out = bcp(&["skill", "paths"]);
+    assert_eq!(code(&out), 0);
+    assert!(stdout_json(&out).is_array());
+}

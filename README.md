@@ -99,6 +99,7 @@ list commands are sorted and can be filtered; `avm` is summarised unless `--full
 | `batch` | many | stdin: one `{"tool":…,"args":{…}}` per line → one result line each, in one session |
 | `serve` | – | run the daemon (`--idle SECS`) |
 | `daemon status\|stop` | – | inspect / stop the daemon |
+| `skill print\|install\|paths` | – | print or install the Copilot skill (`install --global` for `~/.copilot/skills`) |
 | `doctor` | – | toolchain, daemon and server report with timings |
 | `version [--server]` | – | CLI (and server) version |
 
@@ -127,6 +128,34 @@ The intended workflow for an agent writing Bicep, mirroring the MCP server's own
 `bcp tools --markdown` prints every tool's description and parameters as markdown, ready to
 paste into an instructions or skill file. `bcp --help` and `bcp <command> --help` are written
 to be read by agents too.
+
+## GitHub Copilot skill
+
+The repository ships an [Agent Skill](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)
+at `.github/skills/bicep/` that teaches Copilot (CLI, VS Code, JetBrains, cloud agent) when and
+how to use `bcp`: read best practices first, look up types and schemas instead of guessing,
+prefer Azure Verified Modules, build after every edit, format before finishing. The same files
+are embedded in the binary, so one `bcp` install carries its own instructions:
+
+```sh
+bcp skill install --global      # ~/.copilot/skills/bicep — applies to every repository on this machine
+bcp skill install               # ./.github/skills/bicep — commit it with an infrastructure repo
+bcp skill install --dir DIR     # any other skills directory
+bcp skill paths                 # where Copilot looks, and whether the skill there is current
+bcp skill print [reference/commands.md]
+```
+
+Copilot loads `SKILL.md` when a task matches its description (Bicep, `.bicepparam`, ARM
+templates, resource schemas, AVM). The `reference/` files are read on demand. To make Copilot
+lean on it harder in a repository, add to `.github/copilot-instructions.md`:
+
+```markdown
+For any Bicep or ARM template work use the `bicep` skill and the `bcp` CLI.
+Never guess resource property names or API versions; look them up with `bcp schema` / `bcp types`.
+```
+
+`reference/tools.md` is generated from the server: after a server update run
+`bcp tools --markdown > .github/skills/bicep/reference/tools.md` (an e2e test checks it is current).
 
 ## Development
 
