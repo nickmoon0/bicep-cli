@@ -566,7 +566,11 @@ fn skill_install_matches_source() {
     }
     let out = bcp(&["skill", "print"]);
     assert_eq!(code(&out), 0);
-    assert!(String::from_utf8_lossy(&out.stdout).starts_with("---\nname: bicep"));
+    assert!(
+        String::from_utf8_lossy(&out.stdout)
+            .replace("\r\n", "\n")
+            .starts_with("---\nname: bicep")
+    );
     let out = bcp(&["skill", "paths"]);
     assert_eq!(code(&out), 0);
     assert!(stdout_json(&out).is_array());

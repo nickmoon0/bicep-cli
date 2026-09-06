@@ -2,3 +2,4 @@
 *.bicep text eol=lf
 *.bicepparam text eol=lf
 tests/fixtures/** text eol=lf
+.github/skills/** text eol=lf
